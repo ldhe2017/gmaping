@@ -311,8 +311,27 @@ void GridSlamProcessor::setMotionModelParameters
       m_outputStream << setiosflags(ios::fixed) << setprecision(6) << o.getPose().theta << " " <<  o.getTime() << endl;
     }
   }
+
+/* 
+双线程和程序的基本执行流程
+
+GMapping采用GridSlamProcessorThread后台线程进行数据的读取和运算，在gsp_thread.h和相应的实现文件
+gsp_thread.cpp中可以看到初始化，参数配置，扫描数据读取等方法。
+
+最关键的流程是在后台线程调用的方法
+
+void * GridSlamProcessorThread::fastslamthread(GridSlamProcessorThread* gpt)
+
+而这个方法中最主要的处理扫描数据的过程在428行，
+bool processed=gpt->processScan(*rr);同时可以看到GMapping支持在线和离线两种模式。
+
+注意到struct GridSlamProcessorThread : public GridSlamProcessor ，
+这个后台线程执行类GridSlamProcessorThread 继承自GridSlamProcessor，
+所以执行的是GridSlamProcessor的processScan方法。
+
+*/
   
-  
+  //后台线程处理扫描数据方法
   bool GridSlamProcessor::processScan(const RangeReading & reading, int adaptParticles){
     
     /**retireve the position from the reading, and compute the odometry*/

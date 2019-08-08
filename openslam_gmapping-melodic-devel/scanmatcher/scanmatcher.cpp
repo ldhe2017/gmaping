@@ -334,6 +334,11 @@ double ScanMatcher::icpOptimize(OrientedPoint& pnew, const ScanMatcherMap& map, 
 	return currentScore;
 }
 
+
+/*ScanMatcher::optimize()方法获得了一个最优的粒子，
+基本流程是按照预先设定的步长不断移动粒子的位置，
+根据提议分布计算s，得到score最小的那个作为粒子的新的位姿。
+*/
 double ScanMatcher::optimize(OrientedPoint& pnew, const ScanMatcherMap& map, const OrientedPoint& init, const double* readings) const{
 	double bestScore=-1;
 	OrientedPoint currentPose=init;

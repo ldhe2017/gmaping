@@ -21,6 +21,16 @@ MotionModel::drawFromMotion (const OrientedPoint& p, double linearMove, double a
 	return n;
 }
 
+/*
+运动模型
+t时刻粒子的位姿最初由运动模型进行更新。在初始值的基础上增加高斯采样的noisypoint，
+参考MotionModel::drawFromMotion()方法。原理参考文献[1]5.4.1节，sample_motion_model_odometry算法。
+
+p是粒子的t-1时刻的位姿，pnew是当前t时刻的里程计读数，pold是t-1时刻的里程计读数
+
+
+*/
+
 OrientedPoint 
 MotionModel::drawFromMotion(const OrientedPoint& p, const OrientedPoint& pnew, const OrientedPoint& pold) const{
 	double sxy=0.3*srr;

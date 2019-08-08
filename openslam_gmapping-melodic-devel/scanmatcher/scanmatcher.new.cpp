@@ -47,6 +47,18 @@ void ScanMatcher::invalidateActiveArea(){
 	m_activeAreaComputed=false;
 }
 
+
+/*
+计算有效区域
+第一次扫描，count==0时，如果激光观测数据超出了范围，更新栅格地图的范围。同时确定有效区域
+
+每次扫描匹配获取t时刻的最优粒子后会计算有效区域。
+重采样之后，调用ScanMatcher::registerScan() 方法，也会重新计算有效区域。
+
+
+*/
+
+
 void ScanMatcher::computeActiveArea(ScanMatcherMap& map, const OrientedPoint& p, const double* readings){
 	if (m_activeAreaComputed)
 		return;
@@ -101,6 +113,15 @@ void ScanMatcher::computeActiveArea(ScanMatcherMap& map, const OrientedPoint& p,
 	m_activeAreaComputed=true;
 }
 
+
+/*
+占用概率栅格地图
+
+此处的方法感觉有点奇怪，在resample方法中执行ScanMatcher::registerScan()方法，
+计算占用概率栅格地图。采样两种方式，采用信息熵的方式和文献[1] 9.2节的计算方法不一样
+
+
+*/
 void ScanMatcher::registerScan(ScanMatcherMap& map, const OrientedPoint& p, const double* readings){
 	if (!m_activeAreaComputed)
 		computeActiveArea(map, p, readings);
@@ -111,10 +132,12 @@ void ScanMatcher::registerScan(ScanMatcherMap& map, const OrientedPoint& p, cons
 	OrientedPoint lp=p;
 	lp.x+=cos(p.theta)*m_laserPose.x-sin(p.theta)*m_laserPose.y;
 	lp.y+=sin(p.theta)*m_laserPose.x+cos(p.theta)*m_laserPose.y;
-	lp.theta+=m_laserPose.theta;
-	IntPoint p0=map.world2map(lp);
+	lp.theta+=m_laserPose.theta;                  //激光器中心点
+	IntPoint p0=map.world2map(lp);                //转到地图坐标
+
+	
 	const double * angle=m_laserAngles;
-	for (const double* r=readings; r<readings+m_laserBeams; r++, angle++)
+	for (const double* r=readings; r<readings+m_laserBeams; r++, angle++)  //每一条扫描线
 		if (m_generateMap){	
 			double d=*r;
 			if (d>m_laserMaxRange)
@@ -125,13 +148,13 @@ void ScanMatcher::registerScan(ScanMatcherMap& map, const OrientedPoint& p, cons
 			IntPoint p1=map.world2map(phit);
 			
 			d+=map.getDelta();
-			//Point phit2=lp+Point(d*cos(lp.theta+*angle),d*sin(lp.theta+*angle));
-			//IntPoint p2=map.world2map(phit2);
+			//Point phit2=lp+Point(d*cos(lp.theta+*angle),d*sin(lp.theta+*angle));  //扫描到的点
+			//IntPoint p2=map.world2map(phit2);                    //转到地图坐标
 			IntPoint linePoints[20000] ;
 			GridLineTraversalLine line;
 			line.points=linePoints;
 			//GridLineTraversal::gridLine(p0, p2, &line);
-			GridLineTraversal::gridLine(p0, p1, &line);
+			GridLineTraversal::gridLine(p0, p1, &line);                    //计算扫描线占据的栅格
 			for (int i=0; i<line.num_points-1; i++){
 				map.cell(line.points[i]).update(false, Point(0,0));
 			}

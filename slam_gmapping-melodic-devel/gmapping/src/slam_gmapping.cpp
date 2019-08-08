@@ -610,22 +610,32 @@ void
 SlamGMapping::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 {
   laser_count_++;
-  if ((laser_count_ % throttle_scans_) != 0)
-    return;
+  /*每隔throttle_scans_  (默认值1)帧数据计算一次，限流作用*/
+  if ((laser_count_ % throttle_scans_) != 0)      //throttle_scans_实现降频，如果激光频率较高而
+    return;                                       //处理器计算能力有限，可以降低处理激光数据的频率
 
   static ros::Time last_map_update(0,0);
 
   // We can't initialize the mapper until we've got the first scan
   if(!got_first_scan_)
   {
-    if(!initMapper(*scan))
+    
+/* 一些重要的初始化，将slam里的参数传递到openslam里，设定坐标系，坐标原点，
+  以及采样函数随机种子的初始化等等，里面还调用了GridSlamProcessor::init,这
+  个初始化了粒子数，子地图大小*/
+  
+	if(!initMapper(*scan))                        //第一帧激光数据时执行初始化
       return;
     got_first_scan_ = true;
   }
 
   GMapping::OrientedPoint odom_pose;
 
-  if(addScan(*scan, odom_pose))
+  /**
+  pay attention： addScan这个函数*要转到pf的核心代码了 ，将调用processScan
+  */
+
+  if(addScan(*scan, odom_pose))              //初始化完后，再有激光数据时执行addScan函数
   {
     ROS_DEBUG("scan processed");
 
@@ -641,9 +651,12 @@ SlamGMapping::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
     map_to_odom_ = (odom_to_laser * laser_to_map).inverse();
     map_to_odom_mutex_.unlock();
 
+
+	/*如果没有地图那肯定需要直接更新，如果有地图了则需要到时间了，才更新地图了*/
+
     if(!got_map_ || (scan->header.stamp - last_map_update) > map_update_interval_)
     {
-      updateMap(*scan);
+      updateMap(*scan);    //更新地图
       last_map_update = scan->header.stamp;
       ROS_DEBUG("Updated the map");
     }
