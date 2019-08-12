@@ -16,7 +16,7 @@ struct GridLineTraversal {
   inline static void gridLineCore( IntPoint start, IntPoint end, GridLineTraversalLine *line ) ;
 
 };
-
+//Bresenham算法
 void GridLineTraversal::gridLineCore( IntPoint start, IntPoint end, GridLineTraversalLine *line )
 {
   int   dx, dy;            //横纵坐标间距
